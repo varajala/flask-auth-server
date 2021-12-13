@@ -1,0 +1,14 @@
+<p>This email was sent because a new account was created to
+the {{ context['service_name'] }} website with the email address: {{ context['reciever'] }}.
+</p>
+<br>
+<br>
+<p>Your one time verification token:</p>
+<br>
+<p><b>{{ context['token']  }}</b></p>
+<br>
+<br>
+<p>This token expires in {{ context['lifetime'] }} hours.</p>
+<br>
+<p><em>-- This message was sent automatically by {{ context['service_name'] }} --</em></p>
+<br>
