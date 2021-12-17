@@ -43,8 +43,6 @@ def format_dict(d: dict, indent_level = 1) -> str:
     return result
 
 
-
-
 def b64url_decode(input_: bytes) -> bytes:
     padding = len(input_) % 4
     data = input_ if not padding else input_ + b'=' * (4 - padding)
@@ -79,7 +77,8 @@ def do_login_and_refresh(url: str, json_data: dict):
         signature = signature
     )
 
-    session_cookie = decode_flask_session_cookie(response.cookies['session'])
+    raw_session_cookie = response.cookies['session']
+    session_cookie = decode_flask_session_cookie(raw_session_cookie)
     header, payload, signature = jwt.decode(session_cookie['refresh_token'])
     refresh_token = dict(
         header = header,
@@ -87,7 +86,26 @@ def do_login_and_refresh(url: str, json_data: dict):
         signature = signature
     )
 
-    print('Got response.')
+    print('Got response for initial login.')
+    print('Status: ', response.status_code)
+    print('Redirect Location: ', redirect_location)
+    print('Auth token: ', format_dict(auth_token))
+    print('Refresh token: ', format_dict(refresh_token))
+
+    response = requests.post(url, allow_redirects = False, cookies=dict(session=raw_session_cookie))
+    
+    redirect_location = response.headers.get('Location')
+    auth_header = response.headers.get('Authorization')
+
+    header, auth_token_str = auth_header.split(' ')
+    header, payload, signature = jwt.decode(auth_token_str)
+    auth_token = dict(
+        header = header,
+        payload = payload,
+        signature = signature
+    )
+
+    print('Got response for token refresh.')
     print('Status: ', response.status_code)
     print('Redirect Location: ', redirect_location)
     print('Auth token: ', format_dict(auth_token))
