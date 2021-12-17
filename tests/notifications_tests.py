@@ -44,7 +44,7 @@ class CredentialFile:
 @microtest.setup
 def setup():
     global file, proc
-    proc = start_smtp_server(port=PORT, host=LOCALHOST, wait=True)
+    proc = start_smtp_server(port=PORT)
     file = tempfile.TemporaryFile(mode='w+')
 
 
