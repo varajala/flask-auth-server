@@ -100,8 +100,8 @@ def send_email(message: dict, reciever: str, host: tuple, credentials_path: str,
             sys.stderr.write(str(exc))
 
         finally:
-            server.quit()
             if mutex is not None:
                 mutex.release()
+            server.quit()
     
     Thread(target=send).start()

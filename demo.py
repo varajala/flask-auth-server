@@ -1,6 +1,7 @@
 import os
 import io
 import sys
+import time
 import atexit
 import threading
 import auth_server as wsgi_server
@@ -11,6 +12,9 @@ import auth_server.manage as wsgi_server_management
 from microtest.utils import start_wsgi_server, start_smtp_server
 
 
+HTTP_OK_RESPONSES = { 200, 302 }
+MIN_EMAIL_LENGTH = 256 # characters
+
 LOCALHOST = '127.0.0.1'
 SMTP_SERVER_PORT = 25000
 
@@ -19,6 +23,9 @@ API_VERSION = '1.0'
 
 API_REGISTER_URL = f'http://localhost:{API_PORT}/api/{API_VERSION}/register'
 API_VERIFY_URL = f'http://localhost:{API_PORT}/api/{API_VERSION}/verify'
+
+USER_EMAIL = 'test@mail.com'
+USER_PASSWORD = 'test1234'
 
 CONFIG_OPTIONS = dict(
     EMAIL_USE_SSL   = False,
@@ -35,25 +42,53 @@ def main():
     CONFIG_OPTIONS['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     wsgi_app = wsgi_server.create_app(CONFIG_OPTIONS)
 
-    smtp_server_proc = start_smtp_server(host = LOCALHOST, port = SMTP_SERVER_PORT)
-    wsgi_server_proc = start_wsgi_server(wsgi_app, host = LOCALHOST, port = API_PORT)
-
-    @atexit.register
-    def terminate():
-        wsgi_server_proc.terminate()
-        smtp_server_proc.terminate()
-
     with wsgi_app.app_context():
         wsgi_server.orm.create_all()
 
     mutex = threading.Lock()
     wsgi_server_notifications.mutex = mutex
 
-    client_uuid = wsgi_server_management.create_test_client(wsgi_app, 'test-client', 'localhost:8080/index')
+    client_uuid = None
+    with wsgi_app.app_context():
+        client_uuid = wsgi_server_management.create_test_client(wsgi_app, 'test-client', 'localhost:8080/index')
     
-    input('email and auth server running, press any key to stop...')
+    if client_uuid is None:
+        print('FAILED: Failed to create a test client...')
+        return 1    
 
-    # register_user(API_REGISTER_URL, USER_EMAIL, USER_PASSWORD))
+    smtp_server_proc = start_smtp_server(host = LOCALHOST, port = SMTP_SERVER_PORT, wait=True)
+    wsgi_server_proc = start_wsgi_server(wsgi_app, host = LOCALHOST, port = API_PORT, wait=True)
+
+    @atexit.register
+    def terminate():
+        wsgi_server_proc.terminate()
+        smtp_server_proc.terminate()
+
+    print('Registering a new user...')
+    response_status = client.register_user(API_REGISTER_URL, USER_EMAIL, USER_PASSWORD)
+    print('Got response: ', response_status)
+
+    if response_status not in HTTP_OK_RESPONSES:
+        print('FAILED: Registration not succesful...')
+        return 1
+    
+    email = ''
+    for i in range(4, 0, -1):
+        with mutex:
+            email = smtp_server_proc.read_output(read_all=True)
+        
+        if len(email) > MIN_EMAIL_LENGTH:
+            break
+        
+        time.sleep(0.1)
+        
+    if not email:
+        print('FAILED: No verification email sent...')
+        return 1
+
+    print('Server sent verification email: ')
+    print(email + '\n')
+    
     # verify_user(API_VERIFY_URL, dict(email = USER_EMAIL, token = input('Paste the verification token send via email: ').strip()))
     # login_and_refresh(API_LOGIN_URL, dict(email = USER_EMAIL, password = USER_PASSWORD))
     return 0
