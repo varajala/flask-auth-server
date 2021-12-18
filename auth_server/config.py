@@ -22,21 +22,23 @@ DATABASE = 'sqlite:////tmp/database.db'
 
 SECRET_KEY = 'DEVELOPMENT'
 
-#AES requires a key with a length of 128, 192, or 256 bits.
+# AES requires a key with a length of 128, 192, or 256 bits.
 AES_KEY = b'\x0a' * (256 // 8)
 
-#Normally (HOST: str, PORT: int)
-#If host is None the email is dumped into the stream given instead of PORT.
-#The stream must be a text stream (io.TextIO type)
-EMAIL_HOST = (None, sys.stdout)             
+# Normally (HOST: str, PORT: int)
+# If host is None the email is dumped into the stream given instead of PORT.
+# The stream must be a text stream (io.TextIO type)
+EMAIL_HOST = (None, sys.stdout)
 
-#A file with email client credentials.
-#Expected format: EMAIL_ADDR + "\n" + PASSWORD
+EMAIL_USE_SSL = True
+
+# A file with email client credentials.
+# Expected format: EMAIL_ADDR + "\n" + PASSWORD
 EMAIL_CREDENTIALS_PATH = os.path.join(os.path.dirname(__file__), 'email-credentials')
 
 
-#Only for mimicing a package.
-#All submodules should be inserted into the sys.modules, or importing will fail.
+# Only for mimicing a package.
+# All submodules should be inserted into the sys.modules, or importing will fail.
 __path__ = list()
 
 
@@ -75,13 +77,13 @@ api = NamespaceModule(f'{__name__}.api',
 
     API_VERSION = '1.0',
 
-    #Used in the account verification email to notify user where the email came from.
+    # Used in the account verification email to notify user where the email came from.
     SERVICE_NAME = 'Auth Service',
 
-    #Token will be inserted into the headers in the following format:
-    #response.headers[ACCESS_TOKEN_HEADER] = ACCESS_TOKEN_SCHEMA + token
-    #Note when using Authorization: Bearer - schema the space
-    #must be inserted into the ACCESS_TOKEN_SCHEMA constant.
+    # Token will be inserted into the headers in the following format:
+    # response.headers[ACCESS_TOKEN_HEADER] = ACCESS_TOKEN_SCHEMA + token
+    # Note when using Authorization: Bearer - schema the space
+    # must be inserted into the ACCESS_TOKEN_SCHEMA constant.
     ACCESS_TOKEN_HEADER = 'Authorization',
     ACCESS_TOKEN_SCHEMA = 'Bearer ',
 

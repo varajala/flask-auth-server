@@ -77,7 +77,8 @@ def register():
         message = {'content': ('html', email_html), 'subject': 'Verify your new account'},
         reciever = user.email,
         host = flask.current_app.config['EMAIL_HOST'],
-        credentials_path = flask.current_app.config['EMAIL_CREDENTIALS_PATH']
+        credentials_path = flask.current_app.config['EMAIL_CREDENTIALS_PATH'],
+        use_ssl = flask.current_app.config['EMAIL_USE_SSL']
     )
     return HTTP_OK
 
@@ -91,17 +92,18 @@ def login(client_id):
     if client is None:
         return HTTP_NOT_FOUND
 
-    #decrypt client secret
+    # decrypt client secret
     AES_KEY = flask.current_app.config['AES_KEY']
     CLIENT_SECRET = decrypt(client.secret_key, AES_KEY)
 
-    #check for valid refresh tokens provided in session cookie
-    #refresh the access token if refresh toke is valid
-    #otherwise continue normally with login
+    # check for valid refresh tokens provided in session cookie
+    # refresh the access token if refresh toke is valid
+    # otherwise continue normally with login
     refresh_token = session.get(REFRESH_TOKEN_KEY, None)
     if refresh_token is not None:
         with capture_exception(jwt.DecodingError) as capture:
             header, payload, signature = jwt.decode(refresh_token)
+      
         context = {'aud': client.uuid, 'secret_key': CLIENT_SECRET}
         if capture.error is None and security.is_valid_jwt_for_context(header, payload, signature, context):
             user = User.query.get(payload['sub'])
@@ -110,7 +112,8 @@ def login(client_id):
             response.headers[ACCESS_TOKEN_HEADER] = ACCESS_TOKEN_SCHEMA + access_token
             return response
 
-    #no valid refresh token provided, continue with login
+
+    # no valid refresh token provided, continue with login
     json_data = request.get_json()
     if json_data is None or not isinstance(json_data, dict):
         return HTTP_BAD_REQUEST
@@ -118,7 +121,7 @@ def login(client_id):
     email = json_data.get('email', None)
     password = json_data.get('password', None)
 
-    #verify login
+    # verify login
     valid_login = False
     with capture_exception(TypeError) as capture:
         valid_login = security.is_valid_login(email = email, password = password)
@@ -129,13 +132,13 @@ def login(client_id):
     if not valid_login:
         return HTTP_NOT_AUTHORIZED
 
-    #generate jwts using client secret (access, refresh)
+    # generate jwts using client secret (access, refresh)
     user = User.query.filter_by(email = email).first()
     access_token = security.generate_access_token(user, client.uuid, CLIENT_SECRET)
     refresh_token = security.generate_refresh_token(user, client.uuid, CLIENT_SECRET)    
-    #send access token in "Authorization" header with the "Bearer" schema
-    #send refresh token in cookie (HTTP-ONLY)
-    #redirect to the client
+    # send access token in "Authorization" header with the "Bearer" schema
+    # send refresh token in cookie (HTTP-ONLY)
+    # redirect to the client
     response = flask.redirect(client.url)
     response.headers[ACCESS_TOKEN_HEADER] = ACCESS_TOKEN_SCHEMA + access_token
     session[REFRESH_TOKEN_KEY] = refresh_token

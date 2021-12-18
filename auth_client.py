@@ -1,46 +1,10 @@
 import sys
 import zlib
 import base64
-import io
-from json import dumps as json_dumps
-from json import loads as json_loads
-
-if sys.platform == 'linux':
-    import readline
-
 import requests
 import auth_server.jwt as jwt
-
-
-CLIENT_UUID = ''
-API_PORT = 5000
-API_VERSION = '1.0'
-API_LOGIN_URL = f'http://localhost:{API_PORT}/api/{API_VERSION}/login/{CLIENT_UUID}'
-
-USER_EMAIL = ''
-USER_PASSWORD = ''
-
-
-def format_dict(d: dict, indent_level = 1) -> str:
-    buffer = io.StringIO()
-    buffer.write('{\n')
-
-    for name, value in d.items():
-        buffer.write(indent_level * 2 * ' ')
-        buffer.write(str(name))
-        buffer.write(' = ')
-    
-        if isinstance(value, dict):
-            buffer.write(format_dict(value, indent_level = indent_level + 1))
-        else:
-            buffer.write(str(value))
-        buffer.write(',\n')
-
-    buffer.write((indent_level - 1) * 2 * ' ')
-    buffer.write('}')
-    result = buffer.getvalue()
-    buffer.close()
-    return result
+from json import dumps as json_dumps
+from json import loads as json_loads
 
 
 def b64url_decode(input_: bytes) -> bytes:
@@ -63,7 +27,17 @@ def decode_flask_session_cookie(cookie: str) -> dict:
     return json_loads(data.decode("utf-8"))
 
 
-def do_login_and_refresh(url: str, json_data: dict):
+def register_user(url: str, email: str, password: str) -> int:
+    response = requests.post(url, json = dict(email=email, password=password, password_confirm=password), allow_redirects = False)
+    return response.status_code
+
+
+def verify_user(url: str, json_data: dict) -> int:
+    response = requests.post(url, json = json_data, allow_redirects = False)
+    return response.status_code
+
+
+def login_and_refresh(url: str, json_data: dict) -> dict:
     response = requests.post(url, json = json_data, allow_redirects = False)
     
     redirect_location = response.headers.get('Location')
@@ -86,12 +60,17 @@ def do_login_and_refresh(url: str, json_data: dict):
         signature = signature
     )
 
-    print('Got response for initial login.')
-    print('Status: ', response.status_code)
-    print('Redirect Location: ', redirect_location)
-    print('Auth token: ', format_dict(auth_token))
-    print('Refresh token: ', format_dict(refresh_token))
+    return dict(
+        statuscode = response.status_code,
+        redirect_location = redirect_location,
+        auth_token = auth_token,
+        refresh_token = refresh_token,
+        session_cookie = session_cookie,
+        raw_session_cookie = raw_session_cookie
+    )
 
+
+def refresh_access_token(url: str, raw_session_cookie: object) -> dict:
     response = requests.post(url, allow_redirects = False, cookies=dict(session=raw_session_cookie))
     
     redirect_location = response.headers.get('Location')
@@ -104,17 +83,8 @@ def do_login_and_refresh(url: str, json_data: dict):
         payload = payload,
         signature = signature
     )
-
-    print('Got response for token refresh.')
-    print('Status: ', response.status_code)
-    print('Redirect Location: ', redirect_location)
-    print('Auth token: ', format_dict(auth_token))
-    print('Refresh token: ', format_dict(refresh_token))
-
-
-def main():
-    do_login_and_refresh(API_LOGIN_URL, dict(email = USER_EMAIL, password = USER_PASSWORD))
-
-
-if __name__ == '__main__':
-    main()
+    return dict(
+        statuscode = response.status_code,
+        redirect_location = redirect_location,
+        auth_token = auth_token
+    )

@@ -36,6 +36,7 @@ def setup():
         'AES_KEY': (256 // 8) * b'\x01',
 
         'EMAIL_HOST': (None, email_file),
+        'EMAIL_USE_SSL': False,
         'EMAIL_CREDENTIALS_PATH': '/home/varajala/dev/mail',
         
         'SQLALCHEMY_DATABASE_URI': f'sqlite:///{path}',

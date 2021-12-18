@@ -215,3 +215,32 @@ def register_user(email, password):
     
     click.secho('OK ', fg='green', nl=False)
     click.echo('User registered')
+
+
+def create_test_client(application: object, name: str, url: str) -> str:
+    if not security.is_valid_client_name(name):
+        return ''
+
+    if Client.query.filter_by(name=name).first() is not None:
+        return ''
+
+    if not security.is_valid_url(url):
+        return ''
+    
+    client_uuid = str(uuid.uuid4())
+    CLIENT_SECRET = os.urandom(CLIENT_SECRET_LENGTH)
+    
+    AES_KEY = application.config.get('AES_KEY', None)
+    if AES_KEY is None:
+        return ''
+    
+    client = Client(
+        uuid = client_uuid,
+        name = name,
+        url = url,
+        secret_key_hex = encrypt(CLIENT_SECRET, AES_KEY).hex()
+        )
+    
+    orm.session.add(client)
+    orm.session.commit()
+    return client_uuid
