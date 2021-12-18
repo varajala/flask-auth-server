@@ -1,6 +1,7 @@
 import os
-import io
 import sys
+import io
+import re
 import time
 import atexit
 import threading
@@ -8,7 +9,7 @@ import auth_server as wsgi_server
 import auth_client as client
 import auth_server.notifications as wsgi_server_notifications
 import auth_server.manage as wsgi_server_management
-
+from auth_server.config.security import OTP_LENGTH
 from microtest.utils import start_wsgi_server, start_smtp_server
 
 
@@ -33,8 +34,14 @@ CONFIG_OPTIONS = dict(
 )
 
 
-def format_api_login_endpoint(client_uuid: str):
+def format_api_login_url(client_uuid: str):
     return f'http://localhost:{API_PORT}/api/{API_VERSION}/login/{client_uuid}'
+
+
+def find_account_verification_token(email: str) -> str:
+    token_regex = re.compile('<b>\\w{' + str(OTP_LENGTH * 2) + '}</b>')
+    match = re.search(token_regex, email)
+    return '' if match is None else match.group()[3:-4]
 
 
 def main():
@@ -50,11 +57,11 @@ def main():
 
     client_uuid = None
     with wsgi_app.app_context():
-        client_uuid = wsgi_server_management.create_test_client(wsgi_app, 'test-client', 'localhost:8080/index')
+        client_uuid = wsgi_server_management.create_test_client(wsgi_app, 'test', 'http://localhost:8080/index')
     
-    if client_uuid is None:
+    if not client_uuid:
         print('FAILED: Failed to create a test client...')
-        return 1    
+        return
 
     smtp_server_proc = start_smtp_server(host = LOCALHOST, port = SMTP_SERVER_PORT, wait=True)
     wsgi_server_proc = start_wsgi_server(wsgi_app, host = LOCALHOST, port = API_PORT, wait=True)
@@ -70,7 +77,7 @@ def main():
 
     if response_status not in HTTP_OK_RESPONSES:
         print('FAILED: Registration not succesful...')
-        return 1
+        return
     
     email = ''
     for i in range(4, 0, -1):
@@ -84,14 +91,58 @@ def main():
         
     if not email:
         print('FAILED: No verification email sent...')
-        return 1
+        return
 
     print('Server sent verification email: ')
-    print(email + '\n')
+    print(email)
+
+    verification_token = find_account_verification_token(email)
+    if not verification_token:
+        print('FAILED: Account verification token not found in email...')
+        return
     
-    # verify_user(API_VERIFY_URL, dict(email = USER_EMAIL, token = input('Paste the verification token send via email: ').strip()))
-    # login_and_refresh(API_LOGIN_URL, dict(email = USER_EMAIL, password = USER_PASSWORD))
-    return 0
+    input('Press ENTER to verify user account.')
+    print('\nVerfiying user account...')
+    response_status = client.verify_user(API_VERIFY_URL, dict(email = USER_EMAIL, token = verification_token))
+    print('Got response: ', response_status)
+    if response_status not in HTTP_OK_RESPONSES:
+        print('FAILED: Account verification not succesful...')
+        return
+
+    input('Press ENTER to login user.')
+    print('\nLogging in user...')
+    response_data = client.login_user(format_api_login_url(client_uuid), dict(email = USER_EMAIL, password = USER_PASSWORD))
+    response_status = response_data['statuscode']
+    print('Got response: ', response_status)
+    if response_status not in HTTP_OK_RESPONSES:
+        print('FAILED: User login not succesful...')
+        return
+    
+    print('Redirect URL: ', response_data['redirect_location'])
+    print()
+
+    print('Access token: ', format_dict(response_data['access_token']))
+    print()
+
+    print('Refresh token: ', format_dict(response_data['refresh_token']))
+    print()
+
+    raw_session_cookie = response_data['raw_session_cookie']
+    while True:
+        input('Press ENTER to refresh access token, CTRL+C to quit...')
+        print('\nRefreshing access token...')
+        response_data = client.refresh_access_token(format_api_login_url(client_uuid), raw_session_cookie)
+        response_status = response_data['statuscode']
+        print('Got response: ', response_status)
+        if response_status not in HTTP_OK_RESPONSES:
+            print('FAILED: Access token refresh not succesful...')
+            return 1
+        
+        print('Redirect URL: ', response_data['redirect_location'])
+        print()
+
+        print('Access token: ', format_dict(response_data['access_token']))
+        print()
 
 
 def format_dict(d: dict, indent_level = 1) -> str:
@@ -117,4 +168,7 @@ def format_dict(d: dict, indent_level = 1) -> str:
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('\n')

@@ -37,15 +37,14 @@ def verify_user(url: str, json_data: dict) -> int:
     return response.status_code
 
 
-def login_and_refresh(url: str, json_data: dict) -> dict:
+def login_user(url: str, json_data: dict) -> dict:
     response = requests.post(url, json = json_data, allow_redirects = False)
-    
     redirect_location = response.headers.get('Location')
     auth_header = response.headers.get('Authorization')
 
-    header, auth_token_str = auth_header.split(' ')
-    header, payload, signature = jwt.decode(auth_token_str)
-    auth_token = dict(
+    _, access_token_str = auth_header.split(' ')
+    header, payload, signature = jwt.decode(access_token_str)
+    access_token = dict(
         header = header,
         payload = payload,
         signature = signature
@@ -63,7 +62,7 @@ def login_and_refresh(url: str, json_data: dict) -> dict:
     return dict(
         statuscode = response.status_code,
         redirect_location = redirect_location,
-        auth_token = auth_token,
+        access_token = access_token,
         refresh_token = refresh_token,
         session_cookie = session_cookie,
         raw_session_cookie = raw_session_cookie
@@ -78,7 +77,7 @@ def refresh_access_token(url: str, raw_session_cookie: object) -> dict:
 
     header, auth_token_str = auth_header.split(' ')
     header, payload, signature = jwt.decode(auth_token_str)
-    auth_token = dict(
+    access_token = dict(
         header = header,
         payload = payload,
         signature = signature
@@ -86,5 +85,5 @@ def refresh_access_token(url: str, raw_session_cookie: object) -> dict:
     return dict(
         statuscode = response.status_code,
         redirect_location = redirect_location,
-        auth_token = auth_token
+        access_token = access_token
     )
