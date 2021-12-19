@@ -37,7 +37,7 @@ def _prepare(data: bytes) -> bytes:
     return bytes(buffer)
 
 
-def _restore(data: bytes) -> str:
+def _restore(data: bytes) -> bytes:
     """
     Reverse the preparing process.
     """
@@ -45,7 +45,7 @@ def _restore(data: bytes) -> str:
     return data[INT_SIZE:data_len + INT_SIZE]
 
 
-def encrypt(input_: bytes, key: bytes) -> str:
+def encrypt(input_: bytes, key: bytes) -> bytes:
     """
     Encrypt the data provided with the AES block cipher.
     The output is in the following format:

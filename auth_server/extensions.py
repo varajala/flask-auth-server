@@ -8,13 +8,14 @@ inserted into the application in the "_config_extensions" function.
 Author: Valtteri Rajalainen
 """
 
+import typing
 import flask_sqlalchemy
 
 
-_extensions = list()
+_extensions: typing.List[object] = list()
 
 
-def _config_extensions(config):
+def _config_extensions(config: dict):
     """
     Insert extension specific config options here.
     """
@@ -33,7 +34,7 @@ def init_extensions(app, do_config=True):
 
 
 class ExtensionWrapper:
-    def __init__(self, extension):
+    def __init__(self, extension: typing.Callable):
         self._extension = extension()
         _extensions.append(self)
 
@@ -55,4 +56,5 @@ class ExtensionWrapper:
             object.__setattr__(extension, attr, value)
 
 
-orm = ExtensionWrapper(flask_sqlalchemy.SQLAlchemy)
+# init extensions here
+orm: flask_sqlalchemy.SQLAlchemy = ExtensionWrapper(flask_sqlalchemy.SQLAlchemy)

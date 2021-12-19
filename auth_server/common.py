@@ -5,6 +5,7 @@ Mainly for preventing circular imports...
 Author: Valtteri Rajalainen
 """
 
+import typing
 from types import ModuleType
 from datetime import datetime
 
@@ -18,7 +19,7 @@ def unix_utc_now() -> int:
 
 
 class _Capture:
-    def __init__(self, exc_type):
+    def __init__(self, exc_type: type):
         self.exc_type = exc_type
         self.error = None
 
@@ -31,7 +32,7 @@ class _Capture:
             return True
 
 
-def capture_exception(exc_type) -> _Capture:
+def capture_exception(exc_type: type) -> _Capture:
     """
     Return a context manager that captures the given exception type.
 
@@ -52,7 +53,7 @@ class NamespaceModule(ModuleType):
     a package structure. See auth_server.config for example...
     """
 
-    def __init__(self, name, **kwargs):
+    def __init__(self, name: str, **kwargs):
         ModuleType.__init__(self, name)
         object.__setattr__(self, 'namespace', kwargs)
 
@@ -63,7 +64,7 @@ class NamespaceModule(ModuleType):
         return list(filter(lambda item: not item.startswith('_'), names))
 
 
-    def __getattribute__(self, attr):
+    def __getattribute__(self, attr: str):
         try:
             return object. __getattribute__(self, attr)
         except AttributeError as err:
@@ -73,7 +74,7 @@ class NamespaceModule(ModuleType):
             return namespace[attr]
 
 
-    def __setattr__(self, attr, value):
+    def __setattr__(self, attr: str, value: typing.Any):
         namespace = object.__getattribute__(self, 'namespace')
         if attr not in namespace:
             raise AttributeError

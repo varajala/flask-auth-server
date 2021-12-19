@@ -39,7 +39,7 @@ EMAIL_CREDENTIALS_PATH = os.path.join(os.path.dirname(__file__), 'email-credenti
 
 # Only for mimicing a package.
 # All submodules should be inserted into the sys.modules, or importing will fail.
-__path__ = list()
+__path__: list = list()
 
 
 security = NamespaceModule(f'{__name__}.security',

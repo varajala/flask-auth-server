@@ -11,6 +11,7 @@ import uuid
 import os
 import traceback
 import sys
+import typing
 
 from auth_server.extensions import orm
 from auth_server.models import Client, User
@@ -19,23 +20,23 @@ from auth_server.config.security import CLIENT_SECRET_LENGTH
 import auth_server.security as security
 
 
-commands = list()
+commands: typing.List[click.Command] = list()
 
-def export_command(func):
+def export_command(cmd: click.Command) -> click.Command:
     """
     Mark the command as exported.
     These commands are registered into the application.
     """
-    commands.append(func)
-    return func
+    commands.append(cmd)
+    return cmd
 
 
-def echo_error(message):
+def echo_error(message: str):
     click.secho('ERROR: ', fg='red', nl=False)
     click.echo(message)
 
 
-def echo_client_data(client):
+def echo_client_data(client: Client):
     click.secho(f' {client.uuid} ', fg='green', nl=False)
     click.echo(f'| {client.name} | {client.url}')
 
@@ -59,7 +60,7 @@ def init_db():
 @click.argument('name', type=click.STRING)
 @click.argument('url', type=click.STRING)
 @flask.cli.with_appcontext
-def create_client(name: str, url: str) -> None:
+def create_client(name: str, url: str):
     if not security.is_valid_client_name(name):
         echo_error('Invalid client name')
         return
@@ -117,7 +118,7 @@ def list_clients():
 @click.command('manage-client')
 @click.argument('client_id', type=click.STRING)
 @flask.cli.with_appcontext
-def manage_client(client_id):
+def manage_client(client_id: str):
     client = Client.query.filter_by(uuid = client_id).first()
     if client is None:
         echo_error('No client found with the specified uuid.')
@@ -186,7 +187,7 @@ def manage_client(client_id):
 @click.argument('client_id', type=click.STRING)
 @click.confirmation_option(prompt='Are you sure you want to remove this client?')
 @flask.cli.with_appcontext
-def remove_client(client_id):
+def remove_client(client_id: str):
     removed = Client.query.filter_by(uuid = client_id).delete()
     if not removed:
         echo_error('No client found with the specified uuid.')
@@ -199,7 +200,7 @@ def remove_client(client_id):
 @click.argument('email', type=click.STRING)
 @click.password_option()
 @flask.cli.with_appcontext
-def register_user(email, password):
+def register_user(email: str, password: str):
     checks = [
         security.is_valid_email(email),
         security.is_valid_password(password),
@@ -217,7 +218,7 @@ def register_user(email, password):
     click.echo('User registered')
 
 
-def create_test_client(application: object, name: str, url: str) -> str:
+def create_test_client(application: flask.Flask, name: str, url: str) -> str:
     if not security.is_valid_client_name(name):
         return ''
 

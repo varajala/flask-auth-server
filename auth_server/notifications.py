@@ -10,18 +10,18 @@ import smtplib
 import ssl
 import base64
 import sys
+import typing
 
-from typing import TextIO
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from threading import Thread
 
 
-#for testing purposes
+# for testing
 mutex = None
 
 
-def _load_credentials(filepath: str) -> tuple:
+def _load_credentials(filepath: str) -> typing.Tuple[str, str]:
     """
     Open the provided filepath and read the credentials from it.
 
@@ -33,7 +33,7 @@ def _load_credentials(filepath: str) -> tuple:
     return email, password
 
 
-def _write_email_to_stream(content: str, stream: TextIO) -> None:
+def _write_email_to_stream(content: str, stream: typing.TextIO):
     """
     Write email to the provided TextIO stream. The stream is not closed.
 
@@ -80,6 +80,7 @@ def send_email(message: dict, reciever: str, host: tuple, credentials_path: str,
         _write_email_to_stream(mime_msg.as_string(), port)
         return
 
+    server: typing.Union[smtplib.SMTP, smtplib.SMTP_SSL]
     if use_ssl:
         context = ssl.create_default_context()
         server = smtplib.SMTP_SSL(addr, port, context=context)

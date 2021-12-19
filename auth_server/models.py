@@ -4,12 +4,16 @@ Data represented as models.
 Author: Valtteri Rajalainen
 """
 
-from auth_server.config.restrictions import *
 from auth_server.config.security import CLIENT_SECRET_LENGTH
 from auth_server.extensions import orm
 from auth_server.common import unix_utc_now
+from auth_server.config.restrictions import (
+    EMAIL_MAX_LENGTH,
+    CLIENT_NAME_MAX_LENGTH,
+)
 
 
+# for testing
 tables = list()
 
 def export_table(obj):

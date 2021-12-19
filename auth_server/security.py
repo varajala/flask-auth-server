@@ -12,8 +12,23 @@ from typing import Union
 
 import werkzeug.security
 
-from auth_server.config.security import *
-from auth_server.config.restrictions import *
+from auth_server.config.security import (
+    PBKDF2_HASH,
+    PBKDF2_ITERATIONS,
+    SALT_LENGTH,
+    OTP_LENGTH,
+    EMAIL_VERIFICATION_OTP_LIFETIME,
+    ACCESS_TOKEN_LIFETIME,
+    REFRESH_TOKEN_LIFETIME,
+    JWT_ISSUER_NAME,
+    JWT_ISSUER_WHITELIST,
+)
+from auth_server.config.restrictions import (
+    EMAIL_MAX_LENGTH,
+    CLIENT_NAME_MAX_LENGTH,
+    PASSWORD_MAX_LENGTH,
+    PASSWORD_MIN_LENGTH,
+)
 
 from auth_server.extensions import orm
 from auth_server.models import User, Client, OTP
@@ -211,7 +226,7 @@ def verify_user_account(*, email: str, otp_hex: str) -> Union[str, None]:
     return None
 
 
-def generate_access_token(subject: object, audience: str, secret: bytes) -> str:
+def generate_access_token(subject: User, audience: str, secret: bytes) -> str:
     """
     Generate short lived JWT access token.
     
@@ -233,7 +248,7 @@ def generate_access_token(subject: object, audience: str, secret: bytes) -> str:
     
 
 
-def generate_refresh_token(subject: object, audience: str, secret: bytes) -> str:
+def generate_refresh_token(subject: User, audience: str, secret: bytes) -> str:
     """
     Generate longer lasting JWT refresh token.
     

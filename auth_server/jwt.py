@@ -9,6 +9,7 @@ import json
 import base64
 import hashlib
 import hmac
+import typing
 
 from auth_server.common import unix_utc_now
 
@@ -28,7 +29,7 @@ def b64url_decode(input_: bytes) -> bytes:
     return base64.urlsafe_b64decode(data)
 
 
-def generate(payload: dict, secret: bytes, lifetime: int) -> str:
+def generate(payload: typing.Dict[str, typing.Any], secret: bytes, lifetime: int) -> str:
     """
     Generate a JWT string from payload dict and a secret bytestring.
 
@@ -55,7 +56,7 @@ def generate(payload: dict, secret: bytes, lifetime: int) -> str:
     parts.append(b64_payload_bytes)
 
     hash_data = b'.'.join(parts)
-    hash_ = hmac.digest(secret, hash_data, hashlib.sha256)
+    hash_ = hmac.digest(secret, hash_data, 'sha256')
     b64_signature_bytes = b64url_encode(hash_)
 
     parts.append(b64_signature_bytes)
@@ -63,7 +64,7 @@ def generate(payload: dict, secret: bytes, lifetime: int) -> str:
 
 
 
-def decode(token: str) -> tuple:
+def decode(token: str) -> typing.Tuple[dict, dict, bytes]:
     """
     Decode JWT header, payload and signature into separate Python objects.
     No checks are done for input.
@@ -107,7 +108,7 @@ def is_valid(header: dict, payload: dict, signature: bytes, secret: bytes) -> bo
     b64_payload = b64_payload_bytes.decode()
 
     hash_data = f'{b64_header}.{b64_payload}'.encode()
-    hash_ = hmac.digest(secret, hash_data, hashlib.sha256)
+    hash_ = hmac.digest(secret, hash_data, 'sha256')
     valid_signature =  hmac.compare_digest(signature, hash_)
 
     now = unix_utc_now()

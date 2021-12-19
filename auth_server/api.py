@@ -6,16 +6,24 @@ Author: Valtteri Rajalainen
 """
 
 import os
+import typing
 import flask
+from flask.typing import ResponseReturnValue as Response
 
 import auth_server.security as security
 import auth_server.notifications as notifications
 import auth_server.jwt as jwt
 
-from auth_server.config.api import *
 from auth_server.aes import decrypt
 from auth_server.models import User, Client
 from auth_server.common import capture_exception
+from auth_server.config.api import (
+    API_VERSION,
+    SERVICE_NAME,
+    ACCESS_TOKEN_HEADER,
+    ACCESS_TOKEN_SCHEMA,
+    REFRESH_TOKEN_KEY,
+)
 
 
 HTTP_OK = ('OK', 200)
@@ -24,7 +32,7 @@ HTTP_NOT_AUTHORIZED = ('Unauthorized', 401)
 HTTP_NOT_FOUND = ('Not Found', 404)
 
 
-def build_endpoint_url(endpoint):
+def build_endpoint_url(endpoint: str):
     prefix = f'/api/{API_VERSION}'
     return prefix + endpoint if endpoint.startswith('/') else prefix + '/' + endpoint
 
@@ -35,10 +43,14 @@ def get_email_template_folder():
     return os.path.join(dir_path, 'emails')
 
 
-blueprint = flask.Blueprint('api', __name__, template_folder=get_email_template_folder())
+blueprint = flask.Blueprint(
+    'api', __name__,
+    template_folder=get_email_template_folder()
+    )
+
 
 @blueprint.route(build_endpoint_url('/register'), methods=('POST',))
-def register():
+def register() -> Response:
     request = flask.request
     json_data = request.get_json()
     if json_data is None or not isinstance(json_data, dict):
@@ -83,8 +95,30 @@ def register():
     return HTTP_OK
 
 
+@blueprint.route(build_endpoint_url('/verify'), methods=('POST',))
+def verify() -> Response:
+    request = flask.request
+    json_data = request.get_json()
+    if json_data is None or not isinstance(json_data, dict):
+        return HTTP_BAD_REQUEST
+
+    email = json_data.get('email', None)
+    hex_token = json_data.get('token', None)
+
+    error = None
+    with capture_exception(TypeError) as capture:
+        error = security.verify_user_account(email = email, otp_hex = hex_token)
+    
+    if capture.error is not None or error is not None:
+        return HTTP_BAD_REQUEST
+    
+    user = User.query.filter_by(email = email).first()
+    user.is_verified = True
+    return HTTP_OK
+
+
 @blueprint.route(build_endpoint_url('/login/<client_id>'), methods=('POST',))
-def login(client_id):
+def login(client_id: str) -> Response:
     session = flask.session
     request = flask.request
     
@@ -143,25 +177,3 @@ def login(client_id):
     response.headers[ACCESS_TOKEN_HEADER] = ACCESS_TOKEN_SCHEMA + access_token
     session[REFRESH_TOKEN_KEY] = refresh_token
     return response
-
-
-@blueprint.route(build_endpoint_url('/verify'), methods=('POST',))
-def verify():
-    request = flask.request
-    json_data = request.get_json()
-    if json_data is None or not isinstance(json_data, dict):
-        return HTTP_BAD_REQUEST
-
-    email = json_data.get('email', None)
-    hex_token = json_data.get('token', None)
-
-    error = None
-    with capture_exception(TypeError) as capture:
-        error = security.verify_user_account(email = email, otp_hex = hex_token)
-    
-    if capture.error is not None or error is not None:
-        return HTTP_BAD_REQUEST
-    
-    user = User.query.filter_by(email = email).first()
-    user.is_verified = True
-    return HTTP_OK
