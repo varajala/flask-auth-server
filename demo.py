@@ -5,12 +5,15 @@ import re
 import time
 import atexit
 import threading
+
+from microtest.utils import start_wsgi_server, start_smtp_server
+
 import auth_server as wsgi_server
 import auth_client as client
 import auth_server.notifications as wsgi_server_notifications
 import auth_server.manage as wsgi_server_management
+
 from auth_server.config.security import OTP_LENGTH
-from microtest.utils import start_wsgi_server, start_smtp_server
 
 
 HTTP_OK_RESPONSES = { 200, 302 }

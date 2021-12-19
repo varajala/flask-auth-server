@@ -1,5 +1,5 @@
-# Virtual environment
 *env
+*.mypy-cache
 
 **/__pycache__
 **.pyc
