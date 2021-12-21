@@ -37,7 +37,6 @@ def setup():
 
         'EMAIL_HOST': (None, email_file),
         'EMAIL_USE_SSL': False,
-        'EMAIL_CREDENTIALS_PATH': '/home/varajala/dev/mail',
         
         'SQLALCHEMY_DATABASE_URI': f'sqlite:///{path}',
         'SQLALCHEMY_TRACK_MODIFICATIONS': False,

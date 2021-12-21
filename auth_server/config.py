@@ -18,7 +18,7 @@ from auth_server.common import NamespaceModule
 
 SESSION_COOKIE_HTTPONLY = True
 
-DATABASE = 'sqlite:////tmp/database.db'
+DATABASE = 'sqlite:///:memory:'
 
 SECRET_KEY = 'DEVELOPMENT'
 
