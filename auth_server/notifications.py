@@ -44,6 +44,7 @@ def _write_email_to_stream(content: str, stream: typing.TextIO):
     stream.write('\n\n')
     stream.write(base64.b64decode(content).decode('utf-8'))
     stream.write('\n')
+    stream.flush()
 
 
 def send_email(message: dict, reciever: str, host: tuple, credentials_path: str, use_ssl=True):

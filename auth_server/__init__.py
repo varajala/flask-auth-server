@@ -32,7 +32,8 @@ def create_app(test_config: dict = None):
             file.write(b'email-address')
             file.write(b'\n')
             file.write(b'password')
-        app.config['EMAIL_HOST'] = (None, sys.stdout)
+        if test_config is None:
+            app.config['EMAIL_HOST'] = (None, sys.stdout)
 
     init_extensions(app, do_config=test_config is None)
     
